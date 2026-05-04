@@ -33,11 +33,11 @@ def build_skeleton():
         chain = [f"{finger}_{s}" for s in FINGER_JOINTS]
         knu1b, knu1a, knu2a, knu3a = chain
         if finger == "Thumb":
-            bones.append(("Palm", knu1a, color, True))   # ← dashed (thumb only)
+            bones.append(("Palm", knu1a, color, True))
             bones.append((knu1a, knu2a, color, False))
             bones.append((knu2a, knu3a, color, False))
         else:
-            bones.append(("Palm", knu1b, color, False))  # ← solid (all other fingers)
+            bones.append(("Palm", knu1b, color, False))
             bones.append((knu1b, knu1a, color, False))
             bones.append((knu1a, knu2a, color, False))
             bones.append((knu2a, knu3a, color, False))
@@ -56,6 +56,24 @@ def extract_joints(row):
                 row[f"{prefix}_{suffix}_Z"]
             )
     return joints
+
+def get_equal_axis_ranges(joints):
+    xs = [v[0] for v in joints.values()]
+    ys = [v[1] for v in joints.values()]
+    zs = [v[2] for v in joints.values()]
+    max_range = max(
+        max(xs) - min(xs),
+        max(ys) - min(ys),
+        max(zs) - min(zs),
+    ) / 2.0
+    mid_x = (max(xs) + min(xs)) / 2
+    mid_y = (max(ys) + min(ys)) / 2
+    mid_z = (max(zs) + min(zs)) / 2
+    return (
+        [mid_x - max_range, mid_x + max_range],
+        [mid_y - max_range, mid_y + max_range],
+        [mid_z - max_range, mid_z + max_range],
+    )
 
 # --- DATA ---
 @st.cache_data
@@ -98,6 +116,7 @@ if st.sidebar.button("Search"):
 # --- RENDER ---
 row = df.iloc[st.session_state.idx]
 joints = extract_joints(row)
+x_range, y_range, z_range = get_equal_axis_ranges(joints)
 fig = go.Figure()
 
 # Skeleton Lines
@@ -116,7 +135,7 @@ for name, pos in joints.items():
     if name in HIDDEN_JOINTS: continue
     color = PALM_COLOR if name == "Palm" else FINGER_COLORS.get(name.split('_')[0])
     is_tip = "KNU3_A" in name
-    
+
     fig.add_trace(go.Scatter3d(
         x=[pos[0]], y=[pos[1]], z=[pos[2]],
         mode='markers+text' if is_tip else 'markers',
@@ -126,20 +145,18 @@ for name, pos in joints.items():
         name=name, showlegend=False
     ))
 
-# THE CRITICAL AXIS FIX
-# aspectmode='data' ensures 1 unit on X = 1 unit on Y = 1 unit on Z (No Distortion)
 fig.update_layout(
     title=f"Row: {st.session_state.idx} | {row['video_id']} | {row['frame_id']}",
     template="plotly_dark",
     height=800,
     paper_bgcolor=BG_COLOR,
     scene=dict(
-        aspectmode='data', 
-        xaxis=dict(title='X', gridcolor='#333'),
-        yaxis=dict(title='Y', gridcolor='#333'),
-        zaxis=dict(title='Z', gridcolor='#333'),
+        aspectmode='cube',
+        xaxis=dict(title='X', gridcolor='#333', range=x_range),
+        yaxis=dict(title='Y', gridcolor='#333', range=y_range),
+        zaxis=dict(title='Z', gridcolor='#333', range=z_range),
     ),
-    uirevision='constant' # Keeps your rotation fixed when changing rows
+    uirevision='constant'
 )
 
 st.plotly_chart(fig, use_container_width=True)
