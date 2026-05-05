@@ -22,6 +22,16 @@ st.markdown("""
     .pred-label { color: #7a8a9a; font-size: 0.8rem; }
     .pred-value { color: #a8dadc; font-size: 1.4rem; font-weight: bold; }
     label, .stTextInput label { color: #7a8a9a !important; }
+
+    /* Tighten sidebar spacing */
+    section[data-testid="stSidebar"] .block-container { padding-top: 0.5rem; }
+    section[data-testid="stSidebar"] h2 { margin-bottom: 0.3rem; margin-top: 0; }
+    section[data-testid="stSidebar"] .stSlider { margin-top: 0; padding-top: 0; }
+    section[data-testid="stSidebar"] .stTextInput { margin-bottom: 0; padding-bottom: 0; }
+    section[data-testid="stSidebar"] .stButton { margin-top: 0; margin-bottom: 0; }
+    section[data-testid="stSidebar"] hr { margin-top: 0.4rem; margin-bottom: 0.4rem; }
+    section[data-testid="stSidebar"] p { margin-bottom: 0.2rem; }
+    div[data-testid="stVerticalBlock"] { gap: 0rem; }
 </style>
 """, unsafe_allow_html=True)
 
