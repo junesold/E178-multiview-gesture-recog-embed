@@ -19,6 +19,8 @@ st.markdown("""
     div[data-testid="stVerticalBlock"] { gap: 0rem; }
     header { visibility: hidden; height: 0; }
     footer { visibility: hidden; height: 0; }
+    div[data-testid="stMetricValue"] { color: #a8dadc; font-size: 1.1rem; }
+    div[data-testid="stMetricLabel"] { color: #7a8a9a; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -162,7 +164,7 @@ for name, pos in joints.items():
     ))
 
 fig.update_layout(
-    title=f"Video: {row['video_id'].replace('data_', '')}  |  Frame: {row['frame_id'].replace('_joints', '')}  |  Row: {st.session_state.idx + 1}",    template="plotly_dark",
+    title = ""
     height=720,
     margin=dict(l=0, r=0, t=40, b=0),
     paper_bgcolor=BG_COLOR,
@@ -174,5 +176,10 @@ fig.update_layout(
     ),
     uirevision='constant'
 )
+
+info_cols = st.columns(3)
+info_cols[0].metric("Video", row['video_id'].replace('data_', ''))
+info_cols[1].metric("Frame", row['frame_id'].replace('_joints', ''))
+info_cols[2].metric("Row", f"{st.session_state.idx + 1} / {len(df)}")
 
 st.plotly_chart(fig, use_container_width=True)
