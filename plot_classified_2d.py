@@ -139,7 +139,7 @@ def build_hand_traces(pts, axes, view_name, invert_x=False):
 # ---------------------------------------------------------------------------
 @st.cache_data
 def load_data():
-    preds = pd.read_csv("outputs/final outputs/predictions_open_set.csv")
+    preds = pd.read_csv("outputs/predictions_open_set.csv")
     data  = pd.read_csv("data/normalised_hand_data_DATA18REMOVED.csv")
     df = pd.merge(preds, data, on=["video_id", "frame_id"])
     return df
