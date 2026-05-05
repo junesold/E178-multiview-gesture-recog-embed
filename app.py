@@ -164,7 +164,7 @@ for name, pos in joints.items():
     ))
 
 fig.update_layout(
-    title = ""
+    title = "",
     height=720,
     margin=dict(l=0, r=0, t=40, b=0),
     paper_bgcolor=BG_COLOR,
