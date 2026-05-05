@@ -93,9 +93,9 @@ def build_hand_traces(pts, axes, view_name, invert_x=False):
         name  = FINGER_NAMES[f]
         finger_pts = pts[base: base + 4]
 
-        if f == 0:  # Thumb — skip KNU1_B, connect palm to KNU1_A
+        if f == 0:  # Thumb — dashed palm connector, skip KNU1_B
             visible = finger_pts[1:]
-            # Dashed palm connector
+            # Dashed palm connector (thumb only)
             traces.append(go.Scatter(
                 x=[pts[0, i], visible[0, i]],
                 y=[pts[0, j], visible[0, j]],
@@ -113,12 +113,12 @@ def build_hand_traces(pts, axes, view_name, invert_x=False):
                 hovertemplate=f"{name}<extra></extra>"
             ))
         else:
-            # Dashed palm connector
+            # Solid palm connector (all other fingers)
             traces.append(go.Scatter(
                 x=[pts[0, i], finger_pts[0, i]],
                 y=[pts[0, j], finger_pts[0, j]],
                 mode="lines",
-                line=dict(color=color, width=2, dash="dash"),
+                line=dict(color=color, width=2, dash="solid"),
                 opacity=0.55, showlegend=False, hoverinfo="skip"
             ))
             # Solid finger chain
