@@ -274,6 +274,7 @@ fig.update_layout(
     plot_bgcolor=PANEL_COLOR,
     font=dict(color="white"),
     height=480,
+    dragmode = False,
     margin=dict(l=20, r=20, t=40, b=20),
     legend=dict(
         orientation="h",
