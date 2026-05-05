@@ -253,14 +253,18 @@ for col_idx, (view_name, axes) in enumerate(VIEWS.items(), start=1):
         title_text=xl,
         scaleanchor=f"y{'' if col_idx == 1 else col_idx}",
         scaleratio=1,
-        showgrid=False, zeroline=False,
+        showgrid=False, zeroline=True,
+        zerolinecolor="#444e5e", zerolinewidth=1,
+        showline=True, linecolor="#444e5e", linewidth=1,
         color="#7a8a9a",
         autorange="reversed" if invert else True,
         row=1, col=col_idx
     )
     fig.update_yaxes(
         title_text=yl,
-        showgrid=False, zeroline=False,
+        showgrid=False, zeroline=True,
+        zerolinecolor="#444e5e", zerolinewidth=1,
+        showline=True, linecolor="#444e5e", linewidth=1,
         color="#7a8a9a",
         row=1, col=col_idx
     )
