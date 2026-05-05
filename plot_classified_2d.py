@@ -253,7 +253,7 @@ for col_idx, (view_name, axes) in enumerate(VIEWS.items(), start=1):
         title_text=xl,
         scaleanchor=f"y{'' if col_idx == 1 else col_idx}",
         scaleratio=1,
-        showgrid=False, zeroline=True,
+        showgrid=False, zeroline=False,
         zerolinecolor="#444e5e", zerolinewidth=1,
         showline=True, linecolor="#444e5e", linewidth=1,
         color="#7a8a9a",
@@ -262,7 +262,7 @@ for col_idx, (view_name, axes) in enumerate(VIEWS.items(), start=1):
     )
     fig.update_yaxes(
         title_text=yl,
-        showgrid=False, zeroline=True,
+        showgrid=False, zeroline=False,
         zerolinecolor="#444e5e", zerolinewidth=1,
         showline=True, linecolor="#444e5e", linewidth=1,
         color="#7a8a9a",
