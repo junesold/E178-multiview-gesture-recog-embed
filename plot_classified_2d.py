@@ -167,9 +167,41 @@ if c1.button("◀ Prev", use_container_width=True):
 if c2.button("Next ▶", use_container_width=True):
     st.session_state.idx = min(len(df) - 1, st.session_state.idx + 1)
 
-st.session_state.idx = st.sidebar.slider(
-    "Row index", 0, len(df) - 1, st.session_state.idx
+# --- Filter by gesture ---
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Filter by Gesture**")
+
+all_gestures = sorted(df["ensemble_open_set"].unique().tolist())
+display_names = {g: g.replace("_", " ") for g in all_gestures}
+
+selected = st.sidebar.multiselect(
+    "Show only:",
+    options=all_gestures,
+    format_func=lambda g: display_names[g],
+    default=[]
 )
+
+# Apply filter — if nothing selected, show all
+if selected:
+    df_filtered = df[df["ensemble_open_set"].isin(selected)].reset_index(drop=True)
+else:
+    df_filtered = df.reset_index(drop=True)
+
+if len(df_filtered) == 0:
+    st.sidebar.error("No rows match the selected filter.")
+    st.stop()
+
+# Clamp idx to filtered range
+if st.session_state.idx >= len(df_filtered):
+    st.session_state.idx = 0
+
+# Slider — now reflects filtered length
+st.session_state.idx = st.sidebar.slider(
+    "Row index", 0, len(df_filtered) - 1, st.session_state.idx
+)
+
+# Current row
+row = df_filtered.iloc[st.session_state.idx]
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Search**")
@@ -210,7 +242,7 @@ st.markdown(f"""
 info_cols = st.columns(4)
 info_cols[0].metric("Video", vid.replace("data_", ""))
 info_cols[1].metric("Frame", frm.replace("_joints", ""))
-info_cols[2].metric("Row", f"{st.session_state.idx + 1} / {len(df)}")
+info_cols[2].metric("Row", f"{st.session_state.idx + 1} / {len(df_filtered)}")
 
 # Confidence columns if present
 conf_cols = [c for c in df.columns if c.endswith("_confidence_pct")]
