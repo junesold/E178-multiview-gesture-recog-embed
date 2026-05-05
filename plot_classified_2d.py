@@ -203,7 +203,7 @@ frm   = row["frame_id"]
 st.markdown(f"""
 <div class="pred-box">
     <div class="pred-label">Predicted Gesture</div>
-    <div class="pred-value">{pred}</div>
+    <div class="pred-value">{pred.replace("_", " ") if pred != "N/A" else pred}</div>
 </div>
 """, unsafe_allow_html=True)
 
