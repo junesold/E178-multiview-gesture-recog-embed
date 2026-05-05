@@ -162,8 +162,7 @@ for name, pos in joints.items():
     ))
 
 fig.update_layout(
-    title=f"Row: {st.session_state.idx + 1} | {row['video_id']} | {row['frame_id']}",
-    template="plotly_dark",
+    title=f"Video: {row['video_id'].replace('data_', '')}  |  Frame: {row['frame_id'].replace('_joints', '')}  |  Row: {st.session_state.idx + 1}",    template="plotly_dark",
     height=720,
     margin=dict(l=0, r=0, t=40, b=0),
     paper_bgcolor=BG_COLOR,
