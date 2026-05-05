@@ -167,38 +167,6 @@ if c1.button("◀ Prev", use_container_width=True):
 if c2.button("Next ▶", use_container_width=True):
     st.session_state.idx = min(len(df) - 1, st.session_state.idx + 1)
 
-# --- Filter by gesture ---
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Filter by Gesture**")
-
-all_gestures = sorted(df["ensemble_open_set"].unique().tolist())
-display_names = {g: g.replace("_", " ") for g in all_gestures}
-
-selected = st.sidebar.multiselect(
-    "Show only:",
-    options=all_gestures,
-    format_func=lambda g: display_names[g],
-    default=[]
-)
-
-# Apply filter — if nothing selected, show all
-if selected:
-    df_filtered = df[df["ensemble_open_set"].isin(selected)].reset_index(drop=True)
-else:
-    df_filtered = df.reset_index(drop=True)
-
-if len(df_filtered) == 0:
-    st.sidebar.error("No rows match the selected filter.")
-    st.stop()
-
-# Clamp idx to filtered range
-if st.session_state.idx >= len(df_filtered):
-    st.session_state.idx = 0
-
-# Slider — now reflects filtered length
-st.session_state.idx = st.sidebar.slider(
-    "Row index", 0, len(df_filtered) - 1, st.session_state.idx
-)
 
 # Current row
 row = df_filtered.iloc[st.session_state.idx]
@@ -219,6 +187,41 @@ if st.sidebar.button("Search", use_container_width=True):
         st.session_state.idx = int(res.index[0])
     else:
         st.sidebar.error("No match found.")
+
+# --- Filter by gesture ---
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Filter by Gesture**")
+
+all_gestures = sorted(df["ensemble_open_set"].unique().tolist())
+display_names = {g: g.replace("_", " ").title() for g in all_gestures}
+display_to_raw = {v: k for k, v in display_names.items()}
+
+selected_display = st.sidebar.multiselect(
+    "Show only:",
+    options=list(display_names.values()),
+    default=[]
+)
+
+selected = [display_to_raw[d] for d in selected_display]
+
+# Apply filter — if nothing selected, show all
+if selected:
+    df_filtered = df[df["ensemble_open_set"].isin(selected)].reset_index(drop=True)
+else:
+    df_filtered = df.reset_index(drop=True)
+
+if len(df_filtered) == 0:
+    st.sidebar.error("No rows match the selected filter.")
+    st.stop()
+
+# Clamp idx to filtered range
+if st.session_state.idx >= len(df_filtered):
+    st.session_state.idx = 0
+
+# Slider — now reflects filtered length
+st.session_state.idx = st.sidebar.slider(
+    "Row index", 0, len(df_filtered) - 1, st.session_state.idx
+)
 
 # ---------------------------------------------------------------------------
 # Current row
