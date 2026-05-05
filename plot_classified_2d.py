@@ -167,10 +167,6 @@ if c1.button("◀ Prev", use_container_width=True):
 if c2.button("Next ▶", use_container_width=True):
     st.session_state.idx = min(len(df) - 1, st.session_state.idx + 1)
 
-
-# Current row
-row = df_filtered.iloc[st.session_state.idx]
-
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Search**")
 s_vid = st.sidebar.text_input("Video ID (number only, e.g. 4)")
@@ -188,7 +184,6 @@ if st.sidebar.button("Search", use_container_width=True):
     else:
         st.sidebar.error("No match found.")
 
-# --- Filter by gesture ---
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Filter by Gesture**")
 
@@ -215,12 +210,12 @@ if len(df_filtered) == 0:
     st.stop()
 
 # Clamp idx to filtered range
-if st.session_state.idx >= len(df_filtered):
-    st.session_state.idx = 0
+st.session_state.idx = min(st.session_state.idx, max(0, len(df_filtered) - 1))
 
-# Slider — now reflects filtered length
+st.sidebar.markdown("---")
 st.session_state.idx = st.sidebar.slider(
-    "Row index", 0, len(df_filtered) - 1, st.session_state.idx
+    "Row index", 0, max(0, len(df_filtered) - 1),
+    min(st.session_state.idx, max(0, len(df_filtered) - 1))
 )
 
 # ---------------------------------------------------------------------------
