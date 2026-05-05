@@ -291,4 +291,4 @@ for annotation in fig.layout.annotations:
     annotation.font.color = "white"
     annotation.font.size  = 13
 
-st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+st.plotly_chart(fig, use_container_width=True)
