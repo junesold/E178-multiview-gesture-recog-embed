@@ -75,12 +75,10 @@ def center_hand(points):
 # Plotly 2D projection builder
 # ---------------------------------------------------------------------------
 def build_hand_traces(pts, axes, view_name, invert_x=False):
-    """Build plotly traces for one 2D projection of the hand."""
     i, j = axes
     traces = []
     base = 1
 
-    # Palm point
     traces.append(go.Scatter(
         x=[pts[0, i]], y=[pts[0, j]],
         mode="markers",
@@ -93,9 +91,8 @@ def build_hand_traces(pts, axes, view_name, invert_x=False):
         name  = FINGER_NAMES[f]
         finger_pts = pts[base: base + 4]
 
-        if f == 0:  # Thumb — dashed palm connector, skip KNU1_B
+        if f == 0:
             visible = finger_pts[1:]
-            # Dashed palm connector (thumb only)
             traces.append(go.Scatter(
                 x=[pts[0, i], visible[0, i]],
                 y=[pts[0, j], visible[0, j]],
@@ -103,7 +100,6 @@ def build_hand_traces(pts, axes, view_name, invert_x=False):
                 line=dict(color=color, width=2, dash="dash"),
                 opacity=0.55, showlegend=False, hoverinfo="skip"
             ))
-            # Solid finger chain
             traces.append(go.Scatter(
                 x=visible[:, i], y=visible[:, j],
                 mode="lines+markers",
@@ -113,7 +109,6 @@ def build_hand_traces(pts, axes, view_name, invert_x=False):
                 hovertemplate=f"{name}<extra></extra>"
             ))
         else:
-            # Solid palm connector (all other fingers)
             traces.append(go.Scatter(
                 x=[pts[0, i], finger_pts[0, i]],
                 y=[pts[0, j], finger_pts[0, j]],
@@ -121,7 +116,6 @@ def build_hand_traces(pts, axes, view_name, invert_x=False):
                 line=dict(color=color, width=2, dash="solid"),
                 opacity=0.55, showlegend=False, hoverinfo="skip"
             ))
-            # Solid finger chain
             traces.append(go.Scatter(
                 x=finger_pts[:, i], y=finger_pts[:, j],
                 mode="lines+markers",
@@ -136,12 +130,22 @@ def build_hand_traces(pts, axes, view_name, invert_x=False):
 
 # ---------------------------------------------------------------------------
 # Data loading
+# — Load preds and data separately, merge on common keys.
+# — Use inner join so only rows present in BOTH files are kept,
+#   preventing index bloat from unmatched rows.
 # ---------------------------------------------------------------------------
 @st.cache_data
 def load_data():
     preds = pd.read_csv("outputs/predictions_open_set.csv")
-    data  = pd.read_csv("data/cleaned_normalised_data_NOdata18.csv")    
-    df = pd.merge(preds, data, on=["video_id", "frame_id"])
+    data  = pd.read_csv("data/cleaned_normalised_data_NOdata18.csv")
+
+    # Normalise key columns to strip accidental whitespace
+    for col in ["video_id", "frame_id"]:
+        preds[col] = preds[col].astype(str).str.strip()
+        data[col]  = data[col].astype(str).str.strip()
+
+    df = pd.merge(preds, data, on=["video_id", "frame_id"], how="inner")
+    df = df.reset_index(drop=True)
     return df
 
 try:
@@ -157,25 +161,23 @@ if "idx" not in st.session_state:
     st.session_state.idx = 0
 
 # ---------------------------------------------------------------------------
-# Sidebar — navigation
+# Sidebar
 # ---------------------------------------------------------------------------
 st.sidebar.markdown("## Navigation")
-
-# --- Filter first so prev/next/slider all operate on filtered data ---
 st.sidebar.markdown("**Filter by Gesture**")
 
+# Use raw values as option keys — format_func handles display only.
+# This avoids any round-trip conversion that could cause mismatches.
 all_gestures = sorted(df["ensemble_open_set"].unique().tolist())
-display_names = {g: g.replace("_", " ").title() for g in all_gestures}
-display_to_raw = {v: k for k, v in display_names.items()}
 
-selected_display = st.sidebar.multiselect(
+selected = st.sidebar.multiselect(
     "Show only:",
-    options=list(display_names.values()),
+    options=all_gestures,
+    format_func=lambda g: g.replace("_", " ").title(),
     default=[]
 )
 
-selected = [display_to_raw[d] for d in selected_display]
-
+# Build filtered dataframe — strictly match raw CSV values
 if selected:
     df_filtered = df[df["ensemble_open_set"].isin(selected)].reset_index(drop=True)
 else:
@@ -187,18 +189,22 @@ if len(df_filtered) == 0:
 
 st.sidebar.markdown("---")
 
-# Clamp idx to filtered range
-st.session_state.idx = min(st.session_state.idx, max(0, len(df_filtered) - 1))
+# Clamp idx to the filtered length before any widget reads it
+max_idx = max(0, len(df_filtered) - 1)
+st.session_state.idx = min(st.session_state.idx, max_idx)
 
 c1, c2 = st.sidebar.columns(2)
 if c1.button("◀ Prev", use_container_width=True):
     st.session_state.idx = max(0, st.session_state.idx - 1)
 if c2.button("Next ▶", use_container_width=True):
-    st.session_state.idx = min(len(df_filtered) - 1, st.session_state.idx + 1)
+    st.session_state.idx = min(max_idx, st.session_state.idx + 1)
 
+# Slider range is always 0 → len(df_filtered)-1, never exceeds actual data
 st.session_state.idx = st.sidebar.slider(
-    "Row index", 0, max(0, len(df_filtered) - 1),
-    min(st.session_state.idx, max(0, len(df_filtered) - 1))
+    "Row index",
+    min_value=0,
+    max_value=max_idx,
+    value=st.session_state.idx
 )
 
 st.sidebar.markdown("---")
@@ -217,14 +223,15 @@ if st.sidebar.button("Search", use_container_width=True):
         st.session_state.idx = int(res.index[0])
     else:
         st.sidebar.error("No match found.")
+
 # ---------------------------------------------------------------------------
-# Current row
+# Current row — always pulled from df_filtered, never raw df
 # ---------------------------------------------------------------------------
-row   = df.iloc[st.session_state.idx]
-pts   = center_hand(row_to_points(row))
-pred  = row.get("ensemble_open_set", "N/A")
-vid   = row["video_id"]
-frm   = row["frame_id"]
+row  = df_filtered.iloc[st.session_state.idx]
+pts  = center_hand(row_to_points(row))
+pred = row.get("ensemble_open_set", "N/A")
+vid  = row["video_id"]
+frm  = row["frame_id"]
 
 # ---------------------------------------------------------------------------
 # Header info
@@ -241,13 +248,11 @@ info_cols[0].metric("Video", vid.replace("data_", ""))
 info_cols[1].metric("Frame", frm.replace("_joints", ""))
 info_cols[2].metric("Row", f"{st.session_state.idx + 1} / {len(df_filtered)}")
 
-# Confidence columns if present
 conf_cols = [c for c in df.columns if c.endswith("_confidence_pct")]
 if conf_cols and pred != "UNKNOWN":
     avg_conf = row[conf_cols].mean()
     info_cols[3].metric("Avg Confidence", f"{avg_conf:.1f}%")
 
-# Per-model confidence badges
 if conf_cols and pred != "UNKNOWN":
     model_labels = {
         "logistic_regression_confidence_pct": "Logistic Reg.",
@@ -283,7 +288,6 @@ for col_idx, (view_name, axes) in enumerate(VIEWS.items(), start=1):
         scaleanchor=f"y{'' if col_idx == 1 else col_idx}",
         scaleratio=1,
         showgrid=False, zeroline=False,
-        zerolinecolor="#444e5e", zerolinewidth=1,
         showline=True, linecolor="#444e5e", linewidth=1,
         color="#7a8a9a",
         autorange="reversed" if invert else True,
@@ -292,7 +296,6 @@ for col_idx, (view_name, axes) in enumerate(VIEWS.items(), start=1):
     fig.update_yaxes(
         title_text=yl,
         showgrid=False, zeroline=False,
-        zerolinecolor="#444e5e", zerolinewidth=1,
         showline=True, linecolor="#444e5e", linewidth=1,
         color="#7a8a9a",
         row=1, col=col_idx
@@ -303,7 +306,7 @@ fig.update_layout(
     plot_bgcolor=PANEL_COLOR,
     font=dict(color="white"),
     height=480,
-    dragmode = False, 
+    dragmode=False,
     margin=dict(l=20, r=20, t=40, b=20),
     legend=dict(
         orientation="h",
@@ -315,7 +318,6 @@ fig.update_layout(
     uirevision="constant",
 )
 
-# Style subplot title colors
 for annotation in fig.layout.annotations:
     annotation.font.color = "white"
     annotation.font.size  = 13
