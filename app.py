@@ -6,6 +6,22 @@ import plotly.graph_objects as go
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Hand 3D Visualizer", layout="wide")
 
+st.markdown("""
+<style>
+    .stApp { background-color: #0d1117; color: white; }
+    .block-container { 
+        padding-top: 0rem !important; 
+        padding-bottom: 0rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    section[data-testid="stSidebar"] .block-container { padding-top: 0.5rem; }
+    div[data-testid="stVerticalBlock"] { gap: 0rem; }
+    header { visibility: hidden; height: 0; }
+    footer { visibility: hidden; height: 0; }
+</style>
+""", unsafe_allow_html=True)
+
 FINGER_PREFIXES = {
     "Thumb": "TH",
     "Pinky": "F1",
@@ -146,9 +162,10 @@ for name, pos in joints.items():
     ))
 
 fig.update_layout(
-    title=f"Row: {st.session_state.idx} | {row['video_id']} | {row['frame_id']}",
+    title=f"Row: {st.session_state.idx + 1} | {row['video_id']} | {row['frame_id']}",
     template="plotly_dark",
-    height=800,
+    height=720,
+    margin=dict(l=0, r=0, t=40, b=0),
     paper_bgcolor=BG_COLOR,
     scene=dict(
         aspectmode='cube',
