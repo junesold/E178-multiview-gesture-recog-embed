@@ -159,7 +159,7 @@ if "idx" not in st.session_state:
 # ---------------------------------------------------------------------------
 # Sidebar — navigation
 # ---------------------------------------------------------------------------
-st.sidebar.markdown("## 🖐 Navigation")
+st.sidebar.markdown("## Navigation")
 
 c1, c2 = st.sidebar.columns(2)
 if c1.button("◀ Prev", use_container_width=True):
@@ -187,15 +187,6 @@ if st.sidebar.button("Search", use_container_width=True):
         st.session_state.idx = int(res.index[0])
     else:
         st.sidebar.error("No match found.")
-
-# Finger legend in sidebar
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Fingers**")
-for name, color in zip(FINGER_NAMES, FINGER_COLORS):
-    st.sidebar.markdown(
-        f'<span style="color:{color}; font-size:1.1rem;">■</span> {name}',
-        unsafe_allow_html=True
-    )
 
 # ---------------------------------------------------------------------------
 # Current row
@@ -282,7 +273,7 @@ fig.update_layout(
     margin=dict(l=20, r=20, t=40, b=20),
     legend=dict(
         orientation="h",
-        yanchor="bottom", y=-0.15,
+        yanchor="bottom", y=-0.25,
         xanchor="center", x=0.5,
         font=dict(color="white"),
         bgcolor="rgba(0,0,0,0)"
