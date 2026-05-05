@@ -161,30 +161,7 @@ if "idx" not in st.session_state:
 # ---------------------------------------------------------------------------
 st.sidebar.markdown("## Navigation")
 
-c1, c2 = st.sidebar.columns(2)
-if c1.button("◀ Prev", use_container_width=True):
-    st.session_state.idx = max(0, st.session_state.idx - 1)
-if c2.button("Next ▶", use_container_width=True):
-    st.session_state.idx = min(len(df) - 1, st.session_state.idx + 1)
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Search**")
-s_vid = st.sidebar.text_input("Video ID (number only, e.g. 4)")
-s_frm = st.sidebar.text_input("Frame ID (number only, e.g. 948)")
-
-if st.sidebar.button("Search", use_container_width=True):
-    v = f"data_{s_vid}" if s_vid.isdigit() else s_vid
-    f = f"{s_frm}_joints" if s_frm.isdigit() else s_frm
-    mask = pd.Series([True] * len(df))
-    if s_vid: mask &= df["video_id"] == v
-    if s_frm: mask &= df["frame_id"] == f
-    res = df[mask]
-    if not res.empty:
-        st.session_state.idx = int(res.index[0])
-    else:
-        st.sidebar.error("No match found.")
-
-st.sidebar.markdown("---")
+# --- Filter first so prev/next/slider all operate on filtered data ---
 st.sidebar.markdown("**Filter by Gesture**")
 
 all_gestures = sorted(df["ensemble_open_set"].unique().tolist())
@@ -199,7 +176,6 @@ selected_display = st.sidebar.multiselect(
 
 selected = [display_to_raw[d] for d in selected_display]
 
-# Apply filter — if nothing selected, show all
 if selected:
     df_filtered = df[df["ensemble_open_set"].isin(selected)].reset_index(drop=True)
 else:
@@ -209,15 +185,38 @@ if len(df_filtered) == 0:
     st.sidebar.error("No rows match the selected filter.")
     st.stop()
 
+st.sidebar.markdown("---")
+
 # Clamp idx to filtered range
 st.session_state.idx = min(st.session_state.idx, max(0, len(df_filtered) - 1))
 
-st.sidebar.markdown("---")
+c1, c2 = st.sidebar.columns(2)
+if c1.button("◀ Prev", use_container_width=True):
+    st.session_state.idx = max(0, st.session_state.idx - 1)
+if c2.button("Next ▶", use_container_width=True):
+    st.session_state.idx = min(len(df_filtered) - 1, st.session_state.idx + 1)
+
 st.session_state.idx = st.sidebar.slider(
     "Row index", 0, max(0, len(df_filtered) - 1),
     min(st.session_state.idx, max(0, len(df_filtered) - 1))
 )
 
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Search**")
+s_vid = st.sidebar.text_input("Video ID (number only, e.g. 4)")
+s_frm = st.sidebar.text_input("Frame ID (number only, e.g. 948)")
+
+if st.sidebar.button("Search", use_container_width=True):
+    v = f"data_{s_vid}" if s_vid.isdigit() else s_vid
+    f = f"{s_frm}_joints" if s_frm.isdigit() else s_frm
+    mask = pd.Series([True] * len(df_filtered))
+    if s_vid: mask &= df_filtered["video_id"] == v
+    if s_frm: mask &= df_filtered["frame_id"] == f
+    res = df_filtered[mask]
+    if not res.empty:
+        st.session_state.idx = int(res.index[0])
+    else:
+        st.sidebar.error("No match found.")
 # ---------------------------------------------------------------------------
 # Current row
 # ---------------------------------------------------------------------------
