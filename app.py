@@ -98,7 +98,7 @@ if col1.button("◀ Prev"):
 if col2.button("Next ▶"):
     st.session_state.idx = min(len(df) - 1, st.session_state.idx + 1)
 
-st.session_state.idx = st.sidebar.slider("Index", 0, len(df)-1, st.session_state.idx)
+st.session_state.idx = st.sidebar.slider("Index", 1, len(df), st.session_state.idx)
 
 # Search
 st.sidebar.markdown("---")
