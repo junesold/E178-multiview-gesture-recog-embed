@@ -78,7 +78,7 @@ def get_equal_axis_ranges(joints):
 # --- DATA ---
 @st.cache_data
 def load_data():
-    return pd.read_csv("data/cleaned_normalised_hand_data_NOdata18.csv")
+    return pd.read_csv("data/cleaned_normalised_data_NOdata18.csv")
 
 try:
     df = load_data()
