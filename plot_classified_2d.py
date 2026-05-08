@@ -4,11 +4,10 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
+#set up the page configuration
 st.set_page_config(page_title="Hand Gesture Viewer", layout="wide")
 
+#set the stylization (in markdown) for the header of the figure
 st.markdown("""
 <style>
     .stApp { background-color: #0d1117; color: white; }
@@ -24,10 +23,9 @@ st.markdown("""
     label, .stTextInput label { color: #7a8a9a !important; }
 </style>
 """, unsafe_allow_html=True)
+# ^^ decides all the stylization
 
-# ---------------------------------------------------------------------------
-# Definitions
-# ---------------------------------------------------------------------------
+#Joint, finger, axis, and color definitions
 BG_COLOR = "#0d1117"
 PANEL_COLOR = "#0d1117"
 
@@ -53,9 +51,7 @@ AXIS_LABELS = {
     "Top":   ("Z", "X"),
 }
 
-# ---------------------------------------------------------------------------
-# Data helpers
-# ---------------------------------------------------------------------------
+#establish coordinate columns
 def get_coord_cols():
     cols = ["PALM_POSITION_X", "PALM_POSITION_Y", "PALM_POSITION_Z"]
     for prefix in FINGER_PREFIXES.values():
@@ -63,6 +59,7 @@ def get_coord_cols():
             cols += [f"{prefix}_{suffix}_X", f"{prefix}_{suffix}_Y", f"{prefix}_{suffix}_Z"]
     return cols
 
+#process row data into array for processing ease
 def row_to_points(row):
     cols = get_coord_cols()
     coords = row[cols].to_numpy(dtype=float)
@@ -71,9 +68,7 @@ def row_to_points(row):
 def center_hand(points):
     return points - points[0]
 
-# ---------------------------------------------------------------------------
-# Plotly 2D projection builder
-# ---------------------------------------------------------------------------
+#Use plotly for the 2d graphical representation
 def build_hand_traces(pts, axes, view_name, invert_x=False):
     i, j = axes
     traces = []
@@ -128,18 +123,13 @@ def build_hand_traces(pts, axes, view_name, invert_x=False):
 
     return traces
 
-# ---------------------------------------------------------------------------
-# Data loading
-# — Load preds and data separately, merge on common keys.
-# — Use inner join so only rows present in BOTH files are kept,
-#   preventing index bloat from unmatched rows.
-# ---------------------------------------------------------------------------
+# load the data
 @st.cache_data
 def load_data():
     preds = pd.read_csv("outputs/predictions_open_set.csv")
     data  = pd.read_csv("data/cleaned_normalised_data_NOdata18.csv")
 
-    # Normalise key columns to strip accidental whitespace
+    # normalize and ensure clean data (.strip to take care of possible floating-point errors)
     for col in ["video_id", "frame_id"]:
         preds[col] = preds[col].astype(str).str.strip()
         data[col]  = data[col].astype(str).str.strip()
@@ -154,20 +144,15 @@ except Exception as e:
     st.error(f"Could not load data: {e}")
     st.stop()
 
-# ---------------------------------------------------------------------------
-# Session state
-# ---------------------------------------------------------------------------
+
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 
-# ---------------------------------------------------------------------------
-# Sidebar
-# ---------------------------------------------------------------------------
+# build the sidebar
 st.sidebar.markdown("## Navigation")
 st.sidebar.markdown("**Filter by Gesture**")
 
-# Use raw values as option keys — format_func handles display only.
-# This avoids any round-trip conversion that could cause mismatches.
+#make the dropdown selection (using original names to avoid confusion)
 all_gestures = sorted(df["ensemble_open_set"].unique().tolist())
 
 selected = st.sidebar.multiselect(
@@ -177,7 +162,7 @@ selected = st.sidebar.multiselect(
     default=[]
 )
 
-# Build filtered dataframe — strictly match raw CSV values
+#use the selection to create data set
 if selected:
     df_filtered = df[df["ensemble_open_set"].isin(selected)].reset_index(drop=True)
 else:
@@ -189,17 +174,17 @@ if len(df_filtered) == 0:
 
 st.sidebar.markdown("---")
 
-# Clamp idx to the filtered length before any widget reads it
 max_idx = max(0, len(df_filtered) - 1)
 st.session_state.idx = min(st.session_state.idx, max_idx)
 
+#build the previous/next buttons
 c1, c2 = st.sidebar.columns(2)
 if c1.button("◀ Prev", use_container_width=True):
     st.session_state.idx = max(0, st.session_state.idx - 1)
 if c2.button("Next ▶", use_container_width=True):
     st.session_state.idx = min(max_idx, st.session_state.idx + 1)
 
-# Slider range is always 0 → len(df_filtered)-1, never exceeds actual data
+#make the slider (size adjusted to the selection)
 st.session_state.idx = st.sidebar.slider(
     "Row index",
     min_value=0,
@@ -207,6 +192,7 @@ st.session_state.idx = st.sidebar.slider(
     value=st.session_state.idx
 )
 
+#create the search function
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Search**")
 s_vid = st.sidebar.text_input("Video ID (number only, e.g. 4)")
@@ -224,18 +210,14 @@ if st.sidebar.button("Search", use_container_width=True):
     else:
         st.sidebar.error("No match found.")
 
-# ---------------------------------------------------------------------------
-# Current row — always pulled from df_filtered, never raw df
-# ---------------------------------------------------------------------------
+# define current state
 row  = df_filtered.iloc[st.session_state.idx]
 pts  = center_hand(row_to_points(row))
 pred = row.get("ensemble_open_set", "N/A")
 vid  = row["video_id"]
 frm  = row["frame_id"]
 
-# ---------------------------------------------------------------------------
-# Header info
-# ---------------------------------------------------------------------------
+# more header stuff
 st.markdown(f"""
 <div class="pred-box">
     <div class="pred-label">Predicted Gesture</div>
@@ -253,6 +235,7 @@ if conf_cols and pred != "UNKNOWN":
     avg_conf = row[conf_cols].mean()
     info_cols[3].metric("Avg Confidence", f"{avg_conf:.1f}%")
 
+#establish the different models, respective scores, and conclusion
 if conf_cols and pred != "UNKNOWN":
     model_labels = {
         "logistic_regression_confidence_pct": "Logistic Reg.",
@@ -267,9 +250,7 @@ if conf_cols and pred != "UNKNOWN":
 
 st.markdown("---")
 
-# ---------------------------------------------------------------------------
-# Three 2D projection panels
-# ---------------------------------------------------------------------------
+# make the 2D plots
 fig = make_subplots(
     rows=1, cols=3,
     subplot_titles=list(VIEWS.keys()),
@@ -322,4 +303,5 @@ for annotation in fig.layout.annotations:
     annotation.font.color = "white"
     annotation.font.size  = 13
 
+#call the plot!
 st.plotly_chart(fig, use_container_width=True, config={"modeBarButtonsToRemove": ["zoom", "select2d", "lasso2d"]})
